@@ -1,0 +1,47 @@
+:root {
+  --bg: #0b1220;
+  --card: #121a2f;
+  --border: #1e2a45;
+  --text: #e5e7eb;
+  --muted: #9ca3af;
+  --primary: #4f9cff;
+  --success: #22c55e;
+  --error: #ef4444;
+}
+
+* {
+  box-sizing: border-box;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+}
+
+input, button {
+  width: 100%;
+  padding: 12px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: 8px;
+}
+
+button {
+  cursor: pointer;
+  background: var(--primary);
+  border: none;
+}
+
+button:hover {
+  opacity: 0.9;
+}
+
+.card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 24px;
+}

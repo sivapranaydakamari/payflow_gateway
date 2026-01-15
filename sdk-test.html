@@ -11,7 +11,7 @@
     document.getElementById("pay").onclick = () => {
       const checkout = new PaymentGateway({
         key: "key_test_abc123",
-        orderId: "order_xxxxx", // create order first
+        orderId: "order_xxxx", // create order first
         onSuccess: (res) => alert("SUCCESS: " + res.paymentId),
         onFailure: () => alert("FAILED"),
         onClose: () => console.log("Closed"),

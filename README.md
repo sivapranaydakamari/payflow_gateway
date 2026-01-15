@@ -153,6 +153,41 @@ This project demonstrates:
 These are **production-level backend skills**, not toy examples.
 
 ---
+Absolutely 👍
+Here’s a **small, clean, human-sounding README section** just for the **SDK**, written the way a real developer would explain it — not heavy, not marketing-style.
+
+You can directly paste this into your `README.md`.
+
+---
+
+## Embeddable Checkout SDK
+
+PayFlow provides a lightweight JavaScript SDK that merchants can embed directly into their website to accept payments.
+
+The SDK opens a secure checkout modal using an iframe, similar to how Razorpay or Stripe Checkout works. Merchants only need to include one script and pass their `orderId`.
+
+The checkout flow runs independently from the merchant page, and payment results are communicated back using `postMessage`.
+
+### Usage
+
+```html
+<script src="http://localhost:3001/checkout.js"></script>
+<script>
+  const checkout = new PaymentGateway({
+    orderId: "order_xxxxx",
+    onSuccess: (res) => {
+      console.log("Payment successful:", res.paymentId);
+    },
+    onFailure: (res) => {
+      console.log("Payment failed");
+    }
+  });
+
+  checkout.open();
+</script>
+```
+
+---
 
 ## Notes
 

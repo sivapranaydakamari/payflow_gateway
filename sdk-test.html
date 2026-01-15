@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>PayFlow SDK Test</title>
+</head>
+<body>
+  <button id="pay">Pay Now</button>
+
+  <script src="./checkout-widget/checkout.js"></script>
+  <script>
+    document.getElementById("pay").onclick = () => {
+      const checkout = new PaymentGateway({
+        key: "key_test_abc123",
+        orderId: "order_xxxxx", // create order first
+        onSuccess: (res) => alert("SUCCESS: " + res.paymentId),
+        onFailure: () => alert("FAILED"),
+        onClose: () => console.log("Closed"),
+      });
+
+      checkout.open();
+    };
+  </script>
+</body>
+</html>

@@ -21,7 +21,7 @@ export default function Checkout() {
   const [status, setStatus] = useState("idle");
   const [error, setError] = useState("");
 
-  
+
   useEffect(() => {
     if (!orderId) return;
 
@@ -43,11 +43,29 @@ export default function Checkout() {
       if (data.status === "success") {
         setStatus("success");
         clearInterval(interval);
+        window.parent.postMessage(
+          {
+            type: "payment_success",
+            data: {
+              paymentId,
+            },
+          },
+          "*"
+        );
       }
 
       if (data.status === "failed") {
         setStatus("failed");
         clearInterval(interval);
+        window.parent.postMessage(
+          {
+            type: "payment_failed",
+            data: {
+              error: "Payment failed",
+            },
+          },
+          "*"
+        );
       }
     }, 2000);
 

@@ -153,12 +153,6 @@ This project demonstrates:
 These are **production-level backend skills**, not toy examples.
 
 ---
-Absolutely 👍
-Here’s a **small, clean, human-sounding README section** just for the **SDK**, written the way a real developer would explain it — not heavy, not marketing-style.
-
-You can directly paste this into your `README.md`.
-
----
 
 ## Embeddable Checkout SDK
 

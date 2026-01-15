@@ -1,4 +1,5 @@
 const db = require("../config/db");
+const { paymentQueue, webhookQueue, refundQueue } = require("../queue");
 
 const getTestMerchant = async (req, res) => {
   try {
@@ -39,4 +40,41 @@ const getTestMerchant = async (req, res) => {
   }
 };
 
-module.exports = { getTestMerchant };
+const getJobStatus = async (req, res) => {
+  try {
+    const paymentCounts = await paymentQueue.getJobCounts();
+    const webhookCounts = await webhookQueue.getJobCounts();
+    const refundCounts = await refundQueue.getJobCounts();
+
+    res.json({
+      pending:
+        paymentCounts.waiting +
+        webhookCounts.waiting +
+        refundCounts.waiting,
+
+      processing:
+        paymentCounts.active +
+        webhookCounts.active +
+        refundCounts.active,
+
+      completed:
+        paymentCounts.completed +
+        webhookCounts.completed +
+        refundCounts.completed,
+
+      failed:
+        paymentCounts.failed +
+        webhookCounts.failed +
+        refundCounts.failed,
+
+      worker_status: "running",
+    });
+  } catch (err) {
+    console.error("Job status error:", err);
+    res.status(500).json({
+      error: "Unable to fetch job status",
+    });
+  }
+};
+
+module.exports = { getTestMerchant, getJobStatus };

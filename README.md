@@ -1,176 +1,170 @@
 # PayFlow Gateway
 
-PayFlow Gateway is a simplified, end-to-end **payment gateway system** inspired by real-world platforms like Razorpay and Stripe.  
-It demonstrates how merchants create orders, customers complete payments via a hosted checkout, and merchants track transactions through a dashboard.
+PayFlow Gateway is a simplified **end-to-end payment gateway system** inspired by real platforms like Razorpay and Stripe.  
+It demonstrates how payments are created, processed asynchronously, delivered via webhooks, and managed with refunds — all using production-grade backend patterns.
 
-This project focuses on **clean backend architecture**, **secure API design**, and **realistic payment workflows** rather than unnecessary features.
-
----
-
-## Features
-
-### Merchant Side
-- API-key based authentication
-- Create orders securely
-- View payments and transaction analytics
-- Merchant dashboard with:
-  - Total transactions
-  - Total amount collected
-  - Success rate
-  - Transaction history
-
-### Customer Side
-- Public hosted checkout page
-- No login required
-- Supports:
-  - UPI payments
-  - Card payments
-- Real-time payment status polling
-
-### System Features
-- Public & private API separation
-- Payment processing simulation
-- Secure handling of sensitive routes
-- Dockerized setup for easy run
+This project focuses on **system design, reliability, and real-world architecture**, not just CRUD APIs.
 
 ---
 
-## How the System Works (High Level)
+## Evaluation Note
 
-1. **Merchant creates an order** using authenticated APIs.
-2. The backend returns an `order_id`.
-3. The `order_id` is embedded into a **public checkout URL**.
-4. Customer opens checkout and completes payment.
-5. Payment status updates asynchronously.
-6. Merchant views payments on the dashboard.
+**Deliverable 2 (Async Jobs, Webhooks, Refunds, Idempotency, SDK)**  
+is implemented on the branch:
 
-This is the **same workflow used by real payment gateways**.
+--> **`deliverable-2`**
+
+Please evaluate the **deliverable-2** branch.
 
 ---
 
-## Complete Workflow (Step-by-Step)
+## What This Project Covers
 
-### Create Order (Merchant)
-
-```http
-POST /api/v1/orders
-````
-
-Headers:
-
-```
-X-Api-Key
-X-Api-Secret
-```
-
-Body:
-
-```json
-{
-  "amount": 50000,
-  "currency": "INR",
-  "receipt": "receipt_001"
-}
-```
-
-Response:
-
-```json
-{
-  "id": "order_xxxxx",
-  "status": "created"
-}
-```
-
-> Amounts are stored in **smallest currency units (paise)** to avoid floating-point issues.
+### Core Capabilities
+- Asynchronous payment processing using **Redis + BullMQ**
+- Background worker services for:
+  - Payments
+  - Webhooks
+  - Refunds
+- Secure webhook delivery with:
+  - HMAC SHA-256 signatures
+  - Automatic retries with exponential backoff
+- Refund system with:
+  - Full & partial refunds
+  - Async refund processing
+- Idempotency keys to prevent duplicate charges
+- Dockerized setup for easy local execution
 
 ---
 
-### Generate Checkout Link
+## High-Level Flow
 
-```text
-http://localhost:3001/checkout?order_id=order_xxxxx
-```
+1. Merchant creates an order
+2. Payment is created in **pending** state
+3. Worker processes payment asynchronously
+4. Payment becomes **success / failed**
+5. Webhook is delivered to merchant (with retries)
+6. Refunds can be created and processed asynchronously
 
-This link is shared with the customer.
-
----
-
-### Customer Completes Payment
-
-* Customer selects payment method (UPI / Card)
-* Enters details
-* Payment is processed
-* Status updates to **success / failed**
+This is the same pattern used by real payment gateways.
 
 ---
 
-### Merchant Views Dashboard
+## Tech Stack
 
-Merchant dashboard fetches data using authenticated APIs and displays:
-
-* Total transactions
-* Total amount collected
-* Success rate
-* Detailed transaction list
-
----
-
-## Authentication Design
-
-* **Merchant APIs** use API Key & Secret
-* **Public APIs** (checkout, order fetch) do NOT require authentication
-* Sensitive logic is isolated inside service layers
-
-This separation ensures **security and scalability**.
+- **Backend**: Node.js, Express
+- **Database**: PostgreSQL
+- **Queue**: Redis + BullMQ
+- **Infra**: Docker, Docker Compose
+- **Frontend**: React (Dashboard & Checkout)
+- **Security**: API Key auth, HMAC webhooks, idempotency
 
 ---
 
-## Running the Project (One Command)
+## Running the Project
 
 ```bash
-docker-compose up -d --build
-```
+docker-compose up --build
+````
 
-### Access URLs
+### Services
 
-* Backend API: `http://localhost:8000`
-* Merchant Dashboard: `http://localhost:3000`
-* Checkout Page: `http://localhost:3001`
+* API: [http://localhost:8000](http://localhost:8000)
+* Dashboard: [http://localhost:3000](http://localhost:3000)
+* Checkout: [http://localhost:3001](http://localhost:3001)
 
 ---
 
 ## Test Merchant Credentials
 
-These are automatically seeded on startup.
+Seeded automatically on startup:
 
 ```
-API Key: key_test_abc123
+API Key:    key_test_abc123
 API Secret: secret_test_xyz789
+Webhook Secret: whsec_test_abc123
 ```
 
 ---
 
-## Design Decisions
+## Key APIs (Summary)
 
-* Money stored as integers (paise) to avoid precision bugs
-* No customer login (matches real payment gateways)
-* Public checkout separated from merchant dashboard
-* Service layer used for business logic
-* Polling used to simulate async payment confirmation
+### Create Payment (Async)
+
+```http
+POST /api/v1/payments
+```
+
+* Supports Idempotency-Key
+* Returns immediately with `status: pending`
+* Processing happens in background
 
 ---
 
-## Possible Future Enhancements
+### Create Refund
 
-* Webhook support
-* Refund APIs
-* Multiple merchants
-* Payment analytics charts
-* Rate limiting & monitoring
+```http
+POST /api/v1/payments/{payment_id}/refunds
+```
+
+* Supports partial & full refunds
+* Refunds are processed asynchronously
+
+---
+
+### Webhooks
+
+* Events:
+
+  * payment.success
+  * payment.failed
+  * refund.processed
+* Delivered with HMAC signature
+* Automatic retries (5 attempts)
+
+---
+
+## Testing Webhooks
+
+A test merchant webhook server is included.
+
+```bash
+node test-merchant/webhook-receiver.js
+```
+
+Configure webhook URL as:
+
+```
+http://host.docker.internal:4000/webhook
+```
+
+---
+
+## Why This Project Matters
+
+This project demonstrates:
+
+* Event-driven architecture
+* Reliable async processing
+* Idempotent API design
+* Retry-safe webhook delivery
+* Real-world payment system patterns
+
+These are **production-level backend skills**, not toy examples.
+
+---
+
+## Notes
+
+* All money values are stored in smallest currency units (paise)
+* Workers are fully decoupled from API
+* System is resilient to retries, failures, and restarts
 
 ---
 
 ## Conclusion
 
-This project demonstrates a **realistic payment gateway architecture** with clear separation of concerns, secure APIs, and an end-to-end payment flow.
+PayFlow Gateway shows how modern payment systems are actually built —
+with queues, workers, retries, and strong separation of concerns.
+
+This is not just a demo — it’s a **production-style architecture**.

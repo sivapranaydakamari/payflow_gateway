@@ -1,11 +1,15 @@
 const db = require("../config/db");
+const { paymentQueue } = require("../queue");
 const crypto = require("crypto");
-const { isValidVPA, isValidCardNumber, detectCardNetwork, isValidExpiry } = require("./validationService");
+const {
+  isValidVPA,
+  isValidCardNumber,
+  detectCardNetwork,
+  isValidExpiry,
+} = require("./validationService");
 
 const generatePaymentId = () =>
   "pay_" + crypto.randomBytes(8).toString("hex").slice(0, 16);
-
-const sleep = (ms) => new Promise((res) => setTimeout(res, ms));
 
 const createPayment = async (merchantId, payload) => {
   const { order_id, method } = payload;
@@ -64,7 +68,7 @@ const createPayment = async (merchantId, payload) => {
     INSERT INTO payments (
       id, order_id, merchant_id, amount, currency,
       method, status, vpa, card_network, card_last4
-    ) VALUES ($1,$2,$3,$4,$5,$6,'processing',$7,$8,$9)
+    ) VALUES ($1,$2,$3,$4,$5,$6,'pending',$7,$8,$9)
     `,
     [
       paymentId,
@@ -79,45 +83,20 @@ const createPayment = async (merchantId, payload) => {
     ]
   );
 
-  const testMode = process.env.TEST_MODE === "true";
-  const delay = testMode
-    ? parseInt(process.env.TEST_PROCESSING_DELAY || "1000")
-    : Math.floor(Math.random() * 5000) + 5000;
+  await paymentQueue.add("process-payment", { paymentId });
 
-  await sleep(delay);
-
-  let success;
-  if (testMode) {
-    success = process.env.TEST_PAYMENT_SUCCESS !== "false";
-  } else {
-    success = method === "upi" ? Math.random() < 0.9 : Math.random() < 0.95;
-  }
-
-  if (success) {
-    await db.query(
-      `UPDATE payments SET status='success', updated_at=NOW() WHERE id=$1`,
-      [paymentId]
-    );
-  } else {
-    await db.query(
-      `
-      UPDATE payments
-      SET status='failed',
-          error_code='PAYMENT_FAILED',
-          error_description='Payment processing failed',
-          updated_at=NOW()
-      WHERE id=$1
-      `,
-      [paymentId]
-    );
-  }
-
-  const final = await db.query(
-    `SELECT * FROM payments WHERE id=$1`,
-    [paymentId]
-  );
-
-  return final.rows[0];
+  return {
+    id: paymentId,
+    order_id: order.id,
+    amount: order.amount,
+    currency: order.currency,
+    method,
+    status: "pending",
+    vpa,
+    card_network,
+    card_last4,
+    created_at: new Date(),
+  };
 };
 
 const getPaymentById = async (paymentId, merchantId) => {
@@ -141,4 +120,47 @@ const getPaymentById = async (paymentId, merchantId) => {
   return result.rows[0];
 };
 
-module.exports = { createPayment, getPaymentById };
+const capturePayment = async (paymentId, merchantId, amount) => {
+  const res = await db.query(
+    `SELECT * FROM payments WHERE id = $1 AND merchant_id = $2`,
+    [paymentId, merchantId]
+  );
+
+  if (!res.rows.length) {
+    throw {
+      status: 404,
+      message: "Payment not found",
+    };
+  }
+
+  const payment = res.rows[0];
+
+  if (payment.status !== "success" || payment.captured) {
+    throw {
+      status: 400,
+      message: "Payment not in capturable state",
+    };
+  }
+
+  if (amount !== payment.amount) {
+    throw {
+      status: 400,
+      message: "Capture amount mismatch",
+    };
+  }
+
+  const updated = await db.query(
+    `
+    UPDATE payments
+    SET captured = true, updated_at = NOW()
+    WHERE id = $1
+    RETURNING *
+    `,
+    [paymentId]
+  );
+
+  return updated.rows[0];
+};
+
+
+module.exports = { createPayment, getPaymentById, capturePayment };

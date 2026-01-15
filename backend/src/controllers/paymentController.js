@@ -105,4 +105,24 @@ async function listPayments(req, res) {
   }
 }
 
-module.exports = { createPayment, getPayment, listPayments };
+const capturePayment = async (req, res) => {
+  try {
+    const payment = await PaymentService.capturePayment(
+      req.params.id,
+      req.merchant.id,
+      req.body.amount
+    );
+
+    res.json(payment);
+  } catch (err) {
+    res.status(err.status || 400).json({
+      error: {
+        code: err.code || "BAD_REQUEST_ERROR",
+        description: err.message,
+      },
+    });
+  }
+};
+
+
+module.exports = { createPayment, getPayment, listPayments, capturePayment };

@@ -5,6 +5,8 @@ const paymentRoutes = require("./routes/paymentRoutes");
 const publicPaymentRoutes = require("./routes/paymentPublicRoutes");
 const testRoutes = require("./routes/testRoutes");
 const orderPublicRoutes = require("./routes/orderPublicRoutes");
+const refundRoutes = require("./routes/refundRoutes");
+const webhookRoutes = require("./routes/webhookRoutes");
 const cors = require("cors");
 
 const app = express();
@@ -26,6 +28,8 @@ app.use(paymentRoutes);
 app.use(publicPaymentRoutes);
 app.use(orderPublicRoutes);
 app.use(testRoutes);
+app.use(refundRoutes);
+app.use(webhookRoutes);
 
 app.use(healthRoutes);
 
